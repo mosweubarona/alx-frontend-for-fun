@@ -1,43 +1,66 @@
 #!/usr/bin/python3
-'''
-A script that codes markdown to HTML
-'''
 import sys
-import os
-import re
+from os.path import exists
+
+"""A markdown to html file
+    Args:
+        Arg 1: Markdown file
+        Arg 2: output file name (HTML)
+    """
+
+markdownHeader = {'#': '<h1> </h1>', '##': '<h2> </h2>', '###': '<h3> </h3>',
+                  '####': '<h4> </h4>', '#####': '<h5> </h5>', '######': '<h6> </h6>'}
+
+markdownList = {'-': '<li> </li>', '*': '<li> </li>'}
 
 if __name__ == '__main__':
 
-    # Test that the number of arguments passed is 2
-    if len(sys.argv[1:]) != 2:
-        print('Usage: ./markdown2html.py README.md README.html',
-              file=sys.stderr)
-        sys.exit(1)
+    """Check if number of arguments == 2"""
 
-    # Store the arguments into variables
-    input_file = sys.argv[1]
-    output_file = sys.argv[2]
+    if len(sys.argv) != 3:
+        sys.stderr.write("Usage: ./markdown2html.py README.md README.html\n")
+        exit(1)
 
-    # Checks that the markdown file exists and is a file
-    if not (os.path.exists(input_file) and os.path.isfile(input_file)):
-        print(f'Missing {input_file}', file=sys.stderr)
-        sys.exit(1)
+    """Check if input file is a correct markdown file"""
+    if "." in sys.argv[1]:
+        newArr = sys.argv[1].split('.')
+        if len(newArr) != 2:
+            sys.stderr.write('Bad Markdown file\n')
+            exit(1)
+        if newArr[1] != "md":
+            sys.stderr.write('First argument must a markdown file\n')
 
-    with open(input_file, encoding='utf-8') as file_1:
-        html_content = []
-        md_content = [line[:-1] for line in file_1.readlines()]
-        for line in md_content:
-            heading = re.split(r'#{1,6} ', line)
-            if len(heading) > 1:
-                # Compute the number of the # present to
-                # determine heading level
-                h_level = len(line[:line.find(heading[1])-1])
-                # Append the html equivalent of the heading
-                html_content.append(
-                    f'<h{h_level}>{heading[1]}</h{h_level}>\n'
-                )
+    """Check if markdown file exist"""
+    if exists(sys.argv[1]) == False:
+        sys.stderr.write('Missing {}\n'.format(sys.argv[1]))
+        exit(1)
+
+    """Opening the markdown file for file operations"""
+    ulCount = 0
+    with open(sys.argv[1]) as markdown:
+        line = True
+
+        while line:
+            line = markdown.readline()
+            if line.startswith('#'):  # Headings operation
+                hash = line.split(' ')[0]
+
+                with open(sys.argv[2], 'a') as htmlFile:
+                    hashL = len(hash) + 1
+                    htmlFile.write('{}{}{}\n'.format(
+                        markdownHeader[hash].split(' ')[0], line[hashL: -1], markdownHeader[hash].split(' ')[1]))
+
+            if line.startswith('-'):  # Unordered list operation
+                with open(sys.argv[2], 'a') as htmlFile:
+                    if ulCount == 0:
+                        htmlFile.write('<ul>\n')
+                    else:
+                        htmlFile.write('\t{}{}{}\n'.format(
+                            markdownList['-'].split(' ')[0], line[2: -1], markdownList['-'].split(' ')[1]))
+                    ulCount += 1
+
             else:
-                html_content.append(line)
+                with open(sys.argv[2], 'a') as htmlFile:
+                    htmlFile.write(line)
 
-    with open(output_file, 'w', encoding='utf-8') as file_2:
-        file_2.writelines(html_content)
+    exit(0)
